@@ -1,5 +1,6 @@
 {
 	"name": "Bitruncated tesseract",
+	"author" : "Plasmath",
 	"dim": 4,
 	"num_variables": 1,
 	"node_activations": [ "0", "1", "x", "0" ],

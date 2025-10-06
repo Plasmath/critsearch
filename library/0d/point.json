@@ -1,0 +1,13 @@
+{
+	"name": "Point",
+	"author": "ThePokemonkey123",
+	"dim": 0,
+	"num_variables": 0,
+	"node_activations": [],
+	"generating_matrices": [
+	],
+	"generating_vectors": [
+	],
+	"off_header": "0OFF\n1",
+	"off_body": ""
+}

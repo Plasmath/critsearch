@@ -1,5 +1,6 @@
 {
 	"name": "Truncated 5-cube",
+	"author" : "Plasmath",
 	"dim": 5,
 	"num_variables": 1,
 	"node_activations": [ "1", "x", "0", "0", "0" ],

@@ -31,6 +31,7 @@ a. OFF file data that allows critsearch to automatically export its results into
 This is stored through a JSON object with the following keys:
 
 - `name` : The name of the orbit type as a string (e.g. truncated cube).
+- `author` (optional) : Name of the JSON's author.
 - `dim` : The dimension of the orbit as an integer.
 - `num-variables` : An integer indicating the number of free variables (a.k.a. degrees of freedom) in the orbit type (NOTE: No algorithms support more than one free variable at the moment).
 - `node-activations` : An array of strings, each indicating a variable symbolic expression (e.g. `"0"` or `"-sqrt(2)/2"` or `"x"`) of how 'active' each generating vector should be (see `generating-vectors`).

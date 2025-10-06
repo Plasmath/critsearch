@@ -1,0 +1,17 @@
+{
+	"name": "Dyad",
+	"author" : "ThePokemonkey123",
+	"dim": 1,
+	"num_variables": 1,
+	"node_activations": ["x"],
+	"generating_matrices": [
+		[
+			["-1"]
+		]
+	],
+	"generating_vectors": [
+		[ "1"]
+	],
+	"off_header": "1OFF\n2",
+	"off_body": ""
+}

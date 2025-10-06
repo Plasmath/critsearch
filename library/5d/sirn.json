@@ -1,5 +1,6 @@
 {
 	"name": "Cantellated 5-cube",
+	"author" : "Plasmath",
 	"dim": 5,
 	"num_variables": 1,
 	"node_activations": [ "1", "0", "x", "0", "0" ],
