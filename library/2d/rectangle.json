@@ -1,0 +1,23 @@
+{
+	"name": "Rectangle",
+	"author": "Owner and Discoverer of Rectangles, ThePokemonkey123",
+	"dim": 2,
+	"num_variables": 1,
+	"node_activations": [ "1", "x" ],
+	"generating_matrices": [
+		[
+			["-1","0"],
+			["0","1"]
+		],
+		[
+			["1","0"],
+			["0","-1"]
+		]
+	],
+	"generating_vectors": [
+		["1","0"],
+		["0","1"]
+	],
+	"off_header": "2OFF\n4 1",
+	"off_body": "4 1 2 3 0"
+}
