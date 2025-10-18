@@ -1,6 +1,6 @@
 {
 	"name": "Rectangle",
-	"author": "Owner and Discoverer of Rectangles, ThePokemonkey123",
+	"author": "ThePokemonkey123",
 	"dim": 2,
 	"num_variables": 1,
 	"node_activations": [ "1", "x" ],
