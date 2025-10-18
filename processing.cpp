@@ -6,22 +6,55 @@
 
 using json = nlohmann::json;
 
+struct token;
+expr parseTokensConstant(std::vector<token> tokens);
+
 struct token //A single token, used for processing string expressions
 {
-    bool isNumeric;
+    bool isNumeric = false;
+    bool hasExprValue = false;
     int value;
-    std::string operatorName;
+    std::string operatorName = "";
+    std::vector<token> subtokens;
+    expr expr_value;
 
     token(int i)
     {
         isNumeric = true;
         value = i;
+
+        hasExprValue = true;
+        expr_value = expr(i);
     }
 
     token(std::string s)
     {
-        isNumeric = false;
         operatorName = s;
+    }
+
+    token(expr ex)
+    {
+        hasExprValue = true;
+        expr_value = ex;
+    }
+
+    token(std::vector<token> tokens)
+    {
+        if (tokens.size() == 1)
+        {
+            this->isNumeric = tokens[0].isNumeric;
+            this->hasExprValue = tokens[0].hasExprValue;
+            this->value = tokens[0].value;
+            this->operatorName = tokens[0].operatorName;
+            this->subtokens = tokens[0].subtokens;
+            this->expr_value = tokens[0].expr_value;
+        }
+        else
+        {
+            hasExprValue = true;
+            expr_value = parseTokensConstant(tokens);
+            subtokens = tokens;
+        }
     }
 };
 
@@ -42,7 +75,142 @@ struct jsondata
     jsondata() {};
 };
 
-expr parseString(std::string str)
+std::vector<token> organizeTokensConstant(std::vector<token> tokens)
+{
+    std::vector<token> new_tokens;
+    std::vector<token> paren_tokens;
+    int paren_depth = 0;
+    bool in_sqrt = false;
+
+    //Parse parentheses
+    for (int i = 0; i < tokens.size(); i++)
+    {
+        token t = tokens[i];
+
+        if (t.operatorName == "sqrt" && (paren_depth == 0))
+        { 
+            in_sqrt = true;
+        }
+        else if ((t.operatorName != "(") && (paren_depth == 0))
+        {
+            new_tokens.push_back(t);
+        }
+        else if (paren_depth > 0)
+        {
+            paren_tokens.push_back(t);
+        }
+
+        if (t.operatorName == "(")
+        {
+            paren_depth++;
+        }
+        else if (t.operatorName == ")")
+        {
+            paren_depth--;
+
+            if (paren_depth == 0)
+            {
+                paren_tokens.pop_back(); //remove closing parenthesis ')';
+                token u = token(paren_tokens);
+
+                if (in_sqrt)
+                {
+                    if (u.isNumeric)
+                    {
+                        u = token(expr(u.value, 1, 1));
+                    }
+                    else
+                    {
+                        throw std::invalid_argument("Error when parsing square root. Only square roots of integers are currently supported.");
+                    }
+                    in_sqrt = false;
+                }
+
+                new_tokens.push_back(u);
+                paren_tokens = {};
+            }
+        }
+    }
+
+    if (paren_depth != 0)
+    {
+        throw std::invalid_argument("Invalid string expression encountered during import.");
+    }
+
+    return new_tokens;
+}
+
+expr parseTokensConstant(std::vector<token> tokens)
+{
+    tokens = organizeTokensConstant(tokens);
+
+    // Parse multiplication and division (PE[MD]AS)
+    std::vector<token> md_tokens = { tokens[0] };
+
+    for (int i = 1; i < tokens.size(); i++)
+    {
+        if (tokens[i].operatorName == "*")
+        {
+            md_tokens.back().expr_value = md_tokens.back().expr_value * tokens[i + 1].expr_value;
+            i++; //skip the next token because we just processed it
+        }
+        else if (tokens[i].operatorName == "/")
+        {
+            if (tokens[i + 1].isNumeric)
+            {
+                md_tokens.back().expr_value = md_tokens.back().expr_value / tokens[i + 1].value;
+                i++; //skip the next token because we just processed it
+            }
+            else
+            {
+                throw std::invalid_argument("Error while attempting to parse division by non-integral value.");
+            }
+        }
+        else
+        {
+            md_tokens.push_back(tokens[i]);
+        }
+    }
+
+    // Parse addition and subtraction (PEMD[AS])
+    std::vector<token> as_tokens = { md_tokens[0] };
+
+    for (int i = 1; i < md_tokens.size(); i++)
+    {
+        if (md_tokens[i].operatorName == "+")
+        {
+            as_tokens.back().expr_value = as_tokens.back().expr_value + md_tokens[i + 1].expr_value;
+            i++; //skip the next token because we just processed it
+        }
+        else if (md_tokens[i].operatorName == "-")
+        {
+            as_tokens.back().expr_value = as_tokens.back().expr_value - md_tokens[i + 1].expr_value;
+            i++; //skip the next token because we just processed it
+        }
+        else
+        {
+            as_tokens.push_back(md_tokens[i]);
+        }
+    }
+
+    
+    if (as_tokens.size() == 1)
+    {
+        return as_tokens[0].expr_value;
+    }
+    else if ((as_tokens[0].operatorName == "-") && (as_tokens.size() == 2)) //It's possible the expression starts with a minus sign, which wouldn't have been processed yet, so we take that into account
+    {
+        return -as_tokens[1].expr_value;
+    }
+    else
+    {
+        throw std::invalid_argument("Error when parsing expression."); //By this point our expression should have been fully simplified.
+    }
+
+}
+
+//Parses a string into a constant expression.
+expr parseStringConstant(std::string str)
 {
     //Tokenization
     std::vector<token> tokens = {};
@@ -97,6 +265,26 @@ expr parseString(std::string str)
                 }
                 tokens.push_back(token("/"));
             }
+            else if (current == '(')
+            {
+                if (parsingString)
+                {
+                    parsingString = false;
+                    tokens.push_back(token(s));
+                    s = "";
+                }
+                tokens.push_back(token("("));
+            }
+            else if (current == ')')
+            {
+                if (parsingString)
+                {
+                    parsingString = false;
+                    tokens.push_back(token(s));
+                    s = "";
+                }
+                tokens.push_back(token(")"));
+            }
             else if (current == ' ')
             {
                 if (parsingString)
@@ -123,73 +311,8 @@ expr parseString(std::string str)
     {
         tokens.push_back(token(s));
     }
-    
-    /*
-    // for debugging
-    for (token t : tokens)
-    {
-        if (t.isNumeric)
-        {
-            std::cout << t.value << " ";
-        }
-        else
-        {
-            std::cout << t.operatorName << " ";
-        }
-    }
-    std::cout << "\n";*/
 
-    //feeling lazy right now
-    if (tokens[0].operatorName == "-")
-    {
-        // -sqrt(a)/b
-        if (tokens.size() == 6 && tokens[1].operatorName == "sqrt(")
-        {
-            return expr(tokens[2].value, -1, tokens[5].value);
-        }
-
-        // -sqrt(a)
-        if (tokens.size() == 4 && tokens[1].operatorName == "sqrt(")
-        {
-            return expr(tokens[2].value, -1, 1);
-        }
-
-        if (tokens.size() == 4 && tokens[2].operatorName == "/") // -a/b
-        {
-            return -expr(tokens[1].value, tokens[3].value);
-        }
-
-        if (tokens.size() == 2) // -a
-        {
-            return expr(-tokens[1].value);
-        }
-    }
-    else
-    {
-        // sqrt(a)/b
-        if (tokens.size() == 5 && tokens[0].operatorName == "sqrt(")
-        {
-            return expr(tokens[1].value, 1, tokens[4].value);
-        }
-
-        // sqrt(a)
-        if (tokens.size() == 3 && tokens[0].operatorName == "sqrt(")
-        {
-            return expr(tokens[1].value, 1, 1);
-        }
-
-        if (tokens.size() == 3 && tokens[1].operatorName == "/") // a/b
-        {
-            return expr(tokens[0].value, tokens[2].value);
-        }
-
-        if (tokens.size() == 1) // a
-        {
-            return expr(tokens[0].value);
-        }
-    }
-
-    throw std::invalid_argument("Invalid string expression encountered during import.");
+    return parseTokensConstant(tokens);
 }
 
 jsondata importjson(std::string dir)
@@ -215,7 +338,7 @@ jsondata importjson(std::string dir)
         {
             for (int j = 0; j < dim; j++)
             {
-                M(i, j) = parseString(mat[i][j]);
+                M(i, j) = parseStringConstant(mat[i][j]);
             }
         }
 
@@ -228,7 +351,7 @@ jsondata importjson(std::string dir)
 
         for (int i = 0; i < dim; i++)
         {
-            v.push_back(poly(parseString(vector[i])));
+            v.push_back(poly(parseStringConstant(vector[i])));
         }
 
         vectorGens.push_back(vec(v));
@@ -244,7 +367,7 @@ jsondata importjson(std::string dir)
         }
         else
         {
-            nodeActivations.push_back(poly(parseString(str)));
+            nodeActivations.push_back(poly(parseStringConstant(str)));
         }
     }
 

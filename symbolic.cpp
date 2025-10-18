@@ -214,8 +214,8 @@ struct expr
         expr div;
         for (auto const& p : values)
         {
-            values[p.first][0] = p.second[0];
-            values[p.first][1] = p.second[1] * i;
+            div.values[p.first][0] = p.second[0];
+            div.values[p.first][1] = p.second[1] * i;
         }
         div.simplify();
         return div;
