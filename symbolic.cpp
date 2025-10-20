@@ -117,7 +117,7 @@ struct expr
         simplify();
     }
 
-    double eval()
+    const double eval() const
     {
         double total = 0;
         for (auto const& p : values)
@@ -129,7 +129,7 @@ struct expr
     }
 
     //Operator overloading
-    expr operator+(const expr& ex)
+    const expr operator+(const expr& ex) const
     {
         expr sum(values);
 
@@ -159,7 +159,7 @@ struct expr
         return sum;
     }
 
-    expr operator-()
+    const expr operator-() const
     {
         expr negate(values);
         for (auto const& p : negate.values)
@@ -169,12 +169,12 @@ struct expr
         return negate;
     }
 
-    expr operator-(expr& ex)
+    const expr operator-(expr& ex) const
     {
         return (*this) + -ex;
     }
 
-    expr operator*(const expr& ex)
+    const expr operator*(const expr& ex) const
     {
         expr prod;
         for (auto const& p : values) //Foil the two expressions when multiplying
@@ -206,10 +206,17 @@ struct expr
         }
 
         prod.simplify();
+
+        double x = (prod.eval() - (eval() * ex.eval()));
+        if (x > 0.0001)
+        {
+            std::cout << x << " | " << (*this) << " | " << ex << " | " << prod << "\n";
+        }
+
         return prod;
     }
 
-    expr operator/(const int& i)
+    const expr operator/(const int& i) const
     {
         expr div;
         for (auto const& p : values)
@@ -221,7 +228,7 @@ struct expr
         return div;
     }
 
-    bool operator==(const expr& ex)
+    const bool operator==(const expr& ex) const
     {
         for (auto& p : values)
         {
@@ -252,7 +259,7 @@ struct expr
         return true;
     }
 
-    bool operator==(const int& i)
+    bool operator==(const int& i) const
     {
         if ((values.size() == 0) && (i == 0))
         {
@@ -266,7 +273,7 @@ struct expr
 
         if (values.count(1))
         {
-            return (values[1][0] == i) && (values[1][1] == 1); //expression equals sqrt(1)*i/1 = i
+            return (values.at(1)[0] == i) && (values.at(1)[1] == 1); //expression equals sqrt(1)*i/1 = i
         }
         
         return false;
@@ -328,7 +335,7 @@ struct monom
         coeff = c;
     }
 
-    double eval(std::vector<double> subst)
+    const double eval(const std::vector<double>& subst) const
     {
         if (powers.size() > subst.size())
         {
@@ -345,18 +352,18 @@ struct monom
         return a;
     }
 
-    int degree()
+    const int degree() const
     {
         return std::accumulate(powers.begin(), powers.end(), 0);
     }
 
     //Operator overloading
-    monom operator-()
+    const monom operator-() const
     {
         return monom(powers, -coeff);
     }
 
-    monom operator*(const monom& m)
+    const monom operator*(const monom& m) const
     {
         std::vector<int> productPowers = {};
 
@@ -381,17 +388,17 @@ struct monom
         return monom(productPowers, coeff * m.coeff);
     }
 
-    monom operator*(expr ex)
+    const monom operator*(const expr& ex) const
     {
         return monom(powers, coeff * ex);
     }
 
-    monom operator/(int i)
+    const monom operator/(const int& i) const
     {
         return monom(powers, coeff / i);
     }
 
-    bool operator==(monom f)
+    const bool operator==(const monom& f) const
     {
         return (coeff == f.coeff) && (powers == f.powers);
     }
@@ -430,7 +437,7 @@ struct monom
 };
 
 //Order two monomials lexicographically based on their powers - returns whether m1 <= m2 in the ordering.
-bool lexicographic(monom &m1, monom &m2)
+const bool lexicographic(const monom &m1, const monom &m2)
 {
     if (m1.powers.size() == 0)
     {
@@ -540,7 +547,7 @@ struct poly
         }
     }
 
-    poly normalize()
+    const poly normalize() const
     {
         if (coeffs.size() == 0)
         {
@@ -562,7 +569,7 @@ struct poly
         return (*this) * expr(1,gcd);
     }
 
-    double eval(const std::vector<double> subst)
+    const double eval(const std::vector<double> subst) const
     {
         double a = 0;
         for (monom m : coeffs)
@@ -572,7 +579,7 @@ struct poly
         return a;
     }
 
-    expr get_coeff(const std::vector<int> _powers)
+    const expr get_coeff(const std::vector<int> _powers) const
     {
         for (int i = 0; i < coeffs.size(); i++)
         {
@@ -585,7 +592,7 @@ struct poly
         return expr(0);
     }
 
-    int degree()
+    const int degree() const
     {
         int deg = 0;
         for (int i = 0; i < coeffs.size(); i++)
@@ -595,7 +602,7 @@ struct poly
         return deg;
     }
 
-    int num_vars()
+    const int num_vars() const
     {
         int num = 0;
         for (int i = 0; i < coeffs.size(); i++)
@@ -606,7 +613,7 @@ struct poly
     }
 
     //Operator overloading
-    poly operator+(const poly& f)
+    const poly operator+(const poly& f) const
     {
         std::vector<monom> join;
         join.reserve(coeffs.size() + f.coeffs.size());
@@ -615,33 +622,7 @@ struct poly
         return poly(join);
     }
 
-    poly operator-()
-    {
-        return (*this)*expr(-1);
-    }
-
-    poly operator-(poly f)
-    {
-        return (*this) + f * expr(-1);
-    }
-
-    poly operator*(const poly& f)
-    {
-        std::vector<monom> c;
-
-        c.reserve(coeffs.size() * f.coeffs.size());
-        for (int i = 0; i < coeffs.size(); i++)
-        {
-            for (int j = 0; j < f.coeffs.size(); j++)
-            {
-                c.push_back(coeffs[i] * f.coeffs[j]);
-            }
-        }
-
-        return poly(c);
-    }
-
-    poly operator*(expr ex)
+    const poly operator*(const expr& ex) const
     {
         std::vector<monom> c;
         c.reserve(coeffs.size());
@@ -651,6 +632,16 @@ struct poly
         }
 
         return poly(c);
+    }
+
+    const poly operator-() const
+    {
+        return (*this)*expr(-1);
+    }
+
+    const poly operator-(const poly& f) const
+    {
+        return (*this) + (-f);
     }
 
     bool operator==(poly f) const
@@ -672,13 +663,36 @@ struct poly
         return eq;
     }
 
+    const poly operator*(const poly& f) const
+    {
+        std::vector<monom> c;
+
+        c.reserve(coeffs.size() * f.coeffs.size());
+        for (int i = 0; i < coeffs.size(); i++)
+        {
+            for (int j = 0; j < f.coeffs.size(); j++)
+            {
+                c.push_back(coeffs[i] * f.coeffs[j]);
+            }
+        }
+
+        return poly(c);
+    }
+
     friend std::ostream& operator<<(std::ostream& os, const poly& f)
     {
-        os << f.coeffs[0];
-
-        for (int i = 1; i < f.coeffs.size(); i++)
+        if (f.coeffs.size() == 0)
         {
-            os << " + " << f.coeffs[i];
+            os << "0";
+        }
+        else
+        {
+            os << f.coeffs[0];
+
+            for (int i = 1; i < f.coeffs.size(); i++)
+            {
+                os << " + " << f.coeffs[i];
+            }
         }
 
         return os;
@@ -730,7 +744,7 @@ struct vec
         return f;
     }
 
-    std::vector<double> eval(const std::vector<double> subst)
+    const std::vector<double> eval(const std::vector<double>& subst) const
     {
         std::vector<double> v = {};
         v.reserve(dim);
@@ -743,7 +757,7 @@ struct vec
         return v;
     }
 
-    int num_vars()
+    const int num_vars() const
     {
         int num = 0;
         for (poly f : entries)
@@ -753,7 +767,7 @@ struct vec
         return num;
     }
 
-    bool is_invalid() // Used for debugging - tests if any coefficients of a vector have a value of 0 that has not been simplified
+    const bool is_invalid() const // Used for debugging - tests if any coefficients of a vector have a value of 0 that has not been simplified
     {
         for (poly f : entries)
         {
@@ -772,7 +786,7 @@ struct vec
     }
 
     //Operator overloading
-    vec operator+(const vec& v)
+    const vec operator+(const vec& v) const
     {
         std::vector<poly> sum = {};
         for (int i = 0; i < dim; i++)
@@ -782,7 +796,7 @@ struct vec
         return vec(sum);
     }
 
-    vec operator*(const poly& f)
+    const vec operator*(const poly& f) const
     {
         std::vector<poly> prod = {};
         for (int i = 0; i < dim; i++)
@@ -792,7 +806,7 @@ struct vec
         return vec(prod);
     }
 
-    vec operator*(const expr& f)
+    const vec operator*(const expr& f) const
     {
         std::vector<poly> prod = {};
         for (int i = 0; i < dim; i++)
@@ -802,7 +816,7 @@ struct vec
         return vec(prod);
     }
 
-    poly operator[](size_t index) const
+    const poly operator[](size_t index) const
     {
         if (index >= entries.size())
         {
@@ -811,7 +825,7 @@ struct vec
         return entries[index];
     }
 
-    bool operator==(vec v)
+    const bool operator==(vec v) const
     {
         if (dim != v.dim)
         {
@@ -859,7 +873,7 @@ struct matrix
     }
 
     //Operator overloading
-    expr& operator()(int indexX, int indexY)
+    expr& operator()(const int& indexX, const int& indexY)
     {
         if (indexX >= dim[0] || indexY >= dim[1])
         {
@@ -869,7 +883,7 @@ struct matrix
     }
 
     //Returns row y as a vector.
-    vec rowvector(int y) const
+    const vec rowvector(const int& y) const
     {
         std::vector<poly> u = {};
         for (int x = 0; x < dim[0]; x++)
@@ -880,7 +894,7 @@ struct matrix
     }
     
     //Returns row x as a vector.
-    vec columnvector(int x) const
+    const vec columnvector(const int& x) const
     {
         std::vector<poly> u = {};
         for (int y = 0; y < dim[1]; y++)
@@ -890,7 +904,7 @@ struct matrix
         return vec(u);
     }
 
-    vec operator*(const vec& v)
+    const vec operator*(const vec& v) const
     {
         if (v.entries.size() != dim[0])
         {
@@ -908,7 +922,7 @@ struct matrix
         return vec(u);
     }
 
-    matrix operator*(const matrix& M)
+    const matrix operator*(const matrix& M) const
     {
         if (M.dim[1] != dim[0])
         {
@@ -921,7 +935,16 @@ struct matrix
         {
             for (int j = 0; j < M.dim[0]; j++)
             {
-                N(j,i) = (M.columnvector(j).dot(rowvector(i))).coeffs[0].coeff;
+                poly entry = M.columnvector(j).dot(rowvector(i));
+
+                if (entry.coeffs.size() == 0)
+                {
+                    N(j, i) = 0;
+                }
+                else
+                {
+                    N(j, i) = entry.coeffs[0].coeff;
+                }
             }
         }
 

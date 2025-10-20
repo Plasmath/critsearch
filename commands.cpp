@@ -91,7 +91,7 @@ void print_example_orbit(std::vector<vec> &orbit)
 		num = std::max(num, v.num_vars());
 	}
 
-	std::vector<double> subst(num, 2);
+	std::vector<double> subst(num, 1);
 
 	for (std::vector<double> v : eval_orbit(orbit, subst))
 	{

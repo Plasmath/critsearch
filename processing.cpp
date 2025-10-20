@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include <unordered_set>
 
 #include "symbolic.cpp"
 #include "dependencies/json.hpp"
@@ -173,9 +174,22 @@ expr parseTokensConstant(std::vector<token> tokens)
     }
 
     // Parse addition and subtraction (PEMD[AS])
-    std::vector<token> as_tokens = { md_tokens[0] };
+    //It's possible the expression starts with a minus sign, which wouldn't have been processed yet, so we take that into account
+    std::vector<token> as_tokens;
+    int startIndex;
+    if (md_tokens[0].operatorName == "-")
+    {
+        as_tokens = { md_tokens[1] };
+        as_tokens[0].expr_value = as_tokens[0].expr_value * expr(-1);
+        startIndex = 2;
+    }
+    else
+    {
+        as_tokens = { md_tokens[0] };
+        startIndex = 1;
+    }
 
-    for (int i = 1; i < md_tokens.size(); i++)
+    for (int i = startIndex; i < md_tokens.size(); i++)
     {
         if (md_tokens[i].operatorName == "+")
         {
@@ -198,7 +212,7 @@ expr parseTokensConstant(std::vector<token> tokens)
     {
         return as_tokens[0].expr_value;
     }
-    else if ((as_tokens[0].operatorName == "-") && (as_tokens.size() == 2)) //It's possible the expression starts with a minus sign, which wouldn't have been processed yet, so we take that into account
+    else if ((as_tokens[0].operatorName == "-") && (as_tokens.size() == 2)) 
     {
         return -as_tokens[1].expr_value;
     }
@@ -245,7 +259,17 @@ expr parseStringConstant(std::string str)
                 k = 0;
             }
 
-            if (current == '-')
+            if (current == '+')
+            {
+                if (parsingString)
+                {
+                    parsingString = false;
+                    tokens.push_back(token(s));
+                    s = "";
+                }
+                tokens.push_back(token("+"));
+            }
+            else if (current == '-')
             {
                 if (parsingString)
                 {
@@ -254,6 +278,16 @@ expr parseStringConstant(std::string str)
                     s = "";
                 }
                 tokens.push_back(token("-"));
+            }
+            else if (current == '*')
+            {
+                if (parsingString)
+                {
+                    parsingString = false;
+                    tokens.push_back(token(s));
+                    s = "";
+                }
+                tokens.push_back(token("*"));
             }
             else if (current == '/')
             {
@@ -385,9 +419,12 @@ jsondata importjson(std::string dir)
     return jdat;
 }
 
+
+static int counter = 0;
 std::vector<vec> generate_orbit(vec &basePoint, std::vector<matrix> &matrixGens)
 {
     std::vector<vec> orbit = { basePoint };
+    std::unordered_set<vec> orbit_set = { basePoint };
     std::vector<vec> untestedPts = { basePoint };
     std::vector<vec> newUntestedPts;
     vec u = vec({});
@@ -404,16 +441,19 @@ std::vector<vec> generate_orbit(vec &basePoint, std::vector<matrix> &matrixGens)
         {
             for (vec v : untestedPts)
             {
+
                 u = M * v;
+
                 //the new vector u is not yet in the orbit
-                if (std::find(orbit.begin(), orbit.end(), u) == orbit.end())
+                if (orbit_set.count(u) == 0)
                 {
                     if (u.is_invalid())
                     {
-                        //std::cout << "mat:\n" << M << "\nvec:\n" << v << "\noutput:\n" << u << "\n";
+                        throw std::invalid_argument("Invalid vector encountered while generating orbit.");
                     }
-                    
+
                     orbit.push_back(u);
+                    orbit_set.insert(u);
                     newUntestedPts.push_back(u);
                 }
             }
