@@ -207,12 +207,6 @@ struct expr
 
         prod.simplify();
 
-        double x = (prod.eval() - (eval() * ex.eval()));
-        if (x > 0.0001)
-        {
-            std::cout << x << " | " << (*this) << " | " << ex << " | " << prod << "\n";
-        }
-
         return prod;
     }
 

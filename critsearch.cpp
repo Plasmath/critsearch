@@ -43,8 +43,6 @@ int main()
 
                 std::cout << "\tObtaining orbit... \n";
 
-                std::cout << importData.matrixGens[0] << "\n";
-
                 vec v(importData.dim);
                 for (int i = 0; i < importData.vectorGens.size(); i++)
                 {

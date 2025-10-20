@@ -212,10 +212,6 @@ expr parseTokensConstant(std::vector<token> tokens)
     {
         return as_tokens[0].expr_value;
     }
-    else if ((as_tokens[0].operatorName == "-") && (as_tokens.size() == 2)) 
-    {
-        return -as_tokens[1].expr_value;
-    }
     else
     {
         throw std::invalid_argument("Error when parsing expression."); //By this point our expression should have been fully simplified.
